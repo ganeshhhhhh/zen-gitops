@@ -13,3 +13,6 @@ Thumbs.db
 # Sensitive override files — never commit real secrets
 **/secret-values.yaml
 **/values-secret*.yaml
+
+# Trainer-only design specs
+docs/superpowers/

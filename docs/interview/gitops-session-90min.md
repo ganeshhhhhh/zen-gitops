@@ -432,10 +432,237 @@ Start by acknowledging the valid concern: "For 2 services with one team, that's 
 
 ## If You Have Extra Time — Bonus Questions
 
-Pull these from the full question banks as time allows:
+Use these if a block runs short or if students are engaged and want to go deeper. Each is self-contained — pick any order.
 
-- **L3** (`interview-questions.md`) — Liveness vs readiness misconfiguration — common Spring Boot gotcha
-- **L6** (`interview-questions.md`) — Zero-downtime DB migration — always impresses interviewers
-- **M4** (`interview-questions.md`) — Cut cluster costs by 40% — good for senior roles
-- **A2** (`part2.md`) — How ArgoCD detects drift — good depth question
-- **H2** (`part2.md`) — `Pending` pod for 10 minutes — scheduler/resource debugging
+---
+
+### B1 — `[7 min]`
+> "What is the difference between liveness, readiness, and startup probes? What's the most common misconfiguration you've seen in production?"
+
+**Why this question:** Every Kubernetes interview asks this. The misconfiguration angle separates candidates who've run things in production from those who've only read the docs.
+
+**Model answer:**
+
+| Probe | Question it answers | Failure action |
+|-------|--------------------|-|
+| **Liveness** | Is the process alive? | kubelet **kills + restarts** the container |
+| **Readiness** | Is the app ready to serve traffic? | Pod **removed from Service endpoints** — no restart |
+| **Startup** | Has the app finished starting? | Liveness is **paused** until startup passes |
+
+**The most common misconfiguration — using the same path for both:**
+
+```yaml
+# ❌ Wrong — both hit the same deep health check
+livenessProbe:
+  path: /actuator/health        # checks DB, cache, every dependency
+readinessProbe:
+  path: /actuator/health        # same
+```
+
+What goes wrong: RDS has a 30-second network blip. `/actuator/health` returns 503 because DB is temporarily unreachable. Liveness probe fails. Pod gets killed and restarted. Pod tries to reconnect to DB during startup — DB blip is still happening — liveness fires again. Now you have a CrashLoopBackOff from a transient DB hiccup that would have self-resolved.
+
+**Correct approach — split the paths:**
+```yaml
+# ✅ Correct — Zen Pharma does this for all Spring Boot services
+livenessProbe:
+  path: /actuator/health/liveness    # only: is the JVM process alive?
+readinessProbe:
+  path: /actuator/health/readiness   # yes: is DB reachable? Remove from LB if not.
+```
+
+Liveness only kills when the process itself is broken (deadlock, OOM). Readiness handles temporary dependency unavailability gracefully by pulling the pod from the load balancer without restarting it.
+
+**Startup probe use case:** Spring Boot takes 60–90 seconds to start (JVM warmup + Flyway migration). Without a startup probe, you need `initialDelaySeconds: 90` on liveness — meaning a truly crashed pod isn't detected for 90 seconds. With startup probe, liveness is suspended until the app says it's started, then becomes active immediately.
+
+---
+
+### B2 — `[8 min]`
+> "How do you do a zero-downtime deployment when the new version of a service needs a database schema change — like adding a NOT NULL column to a 10-million-row table?"
+
+**Why this question:** Almost no one gets this right on their first answer. It exposes whether someone has actually done migrations in production or just in dev.
+
+**Model answer — the expand-contract pattern:**
+
+The rule: **never deploy app code and a breaking DB change at the same time.** Break it into backward-compatible phases.
+
+**Phase 1 — Expand: add the column as nullable**
+```sql
+-- Run this BEFORE deploying new app version
+ALTER TABLE drugs ADD COLUMN expiry_date DATE NULL;
+```
+Both old and new app code can run against this schema simultaneously. Old pods ignore the new column. New pods write to it. No lock on the table that would block reads.
+
+**Phase 2 — Deploy the new app version (rolling update)**
+New pods start writing `expiry_date`. Old pods (mid-rollout) write NULL — still valid because the column is nullable. No downtime.
+
+**Phase 3 — Backfill and add constraint**
+After 100% of pods are on the new version:
+```sql
+UPDATE drugs SET expiry_date = '2099-01-01' WHERE expiry_date IS NULL;
+ALTER TABLE drugs ALTER COLUMN expiry_date SET NOT NULL;
+```
+
+**Phase 4 — Contract: clean up old compatibility code**
+Remove any code that handled the nullable case.
+
+**In GitOps:** The migration SQL runs as a Kubernetes Job (or Flyway init container) tracked in the gitops repo. You can `git log` and see exactly when each migration ran and who triggered it.
+
+**What interviewers are really checking:** Do you know that `ALTER TABLE ... SET NOT NULL` on a large table takes a lock? On PostgreSQL it rewrites the table. On 10M rows that could be minutes of table lock = downtime. The nullable → backfill → constraint approach avoids that entirely.
+
+**Common wrong answer:** "We run the migration in a pre-deployment hook." That only works if the migration is backward-compatible. `DROP COLUMN`, `RENAME COLUMN`, or `SET NOT NULL` without backfill all break the old pods still running during the rolling update.
+
+---
+
+### B3 — `[7 min]`
+> "You need to reduce your EKS cluster costs by 40%. You cannot turn off any production services. Where do you start?"
+
+**Why this question:** Good for senior roles. Tests whether candidates know the levers, not just the theory.
+
+**Model answer — in order of effort vs impact:**
+
+**Week 1 — Quick wins, zero risk:**
+
+```bash
+# See actual vs requested
+kubectl top pods -n prod
+kubectl top pods -n dev
+kubectl top pods -n qa
+```
+
+1. **Right-size resource requests** — Spring Boot services typically over-request. If `api-gateway` requests `100m CPU` but uses `40m`, reduce to `60m`. Smaller requests = scheduler packs more pods per node = fewer nodes needed.
+
+2. **Scale non-prod to zero outside business hours** — dev and qa have no SLA. A Kubernetes CronJob (or KEDA) scales them to zero replicas at 8pm and restores at 7am. With 8 services × 2 namespaces, this saves ~16 pod-hours per night per service.
+
+3. **Delete orphaned resources** — `kubectl get all -n dev` — old jobs, stuck PVCs, unused ConfigMaps from experiments.
+
+**Month 1 — Medium effort, high impact:**
+
+4. **Spot instances for dev/qa** — 60–70% cheaper than On-Demand. Use a separate Spot node group. Taint it `spot=true:NoSchedule`. Add toleration to dev/qa pods. Prod pods stay on On-Demand.
+
+5. **Graviton (ARM) node groups** — 20% cheaper. Java workloads run well on ARM. Requires multi-arch Docker images (`docker buildx`).
+
+6. **Dev/qa RDS right-sizing** — a `db.t3.medium` RDS is sufficient for dev. Check if dev is running on `db.r5.large`.
+
+**Quarter 1 — Architecture changes:**
+
+7. **KEDA for event-driven services** — `notification-service` doesn't need a constant replica if it only fires on events. KEDA scales it to zero when idle, up when there's work.
+
+8. **Cluster consolidation** — if dev and qa are on separate clusters, merge them. Namespace isolation is sufficient. Halves the control plane cost.
+
+**How to present this to management:** CloudWatch Container Insights shows per-namespace cost breakdown. Build a before/after table: current cost, projected saving per action, effort, risk. Let them decide which levers to pull.
+
+---
+
+### B4 — `[8 min]`
+> "How does ArgoCD detect configuration drift? What exactly happens when someone manually changes a resource directly in the cluster?"
+
+**Why this question:** Tests depth of ArgoCD understanding — most candidates know it "watches" the cluster but can't explain the mechanism.
+
+**Model answer — two continuous processes:**
+
+**1. Git polling (every 3 minutes)**
+```
+ArgoCD repo-server fetches latest commit from zen-gitops
+→ renders Helm templates with env-specific values
+→ produces desired manifests (the "should be" state)
+```
+
+**2. Live state watch (Kubernetes informers)**
+```
+ArgoCD application-controller watches managed resources via K8s API
+→ caches live state in memory (the "is" state)
+→ compares desired vs live using a three-way diff
+```
+
+If they differ → app status becomes `OutOfSync`.
+
+**Concrete scenario — developer runs:**
+```bash
+kubectl set image deployment/auth-service auth-service=auth-service:hotfix -n prod
+```
+
+**With `selfHeal: false` (prod default):**
+- ArgoCD detects mismatch within ~3 minutes
+- Status → `OutOfSync`, shows diff in UI
+- Cluster stays drifted until an operator manually syncs
+- The hotfix persists until someone acts
+
+**With `selfHeal: true` (dev default):**
+- ArgoCD detects drift within ~3 minutes
+- **Reverts immediately** — applies the manifest from Git
+- Developer's hotfix is overwritten silently
+- Status returns to `Synced`
+
+**This is why:** In Zen Pharma, dev has `selfHeal: true` (stop manual drift, enforce Git), prod has manual sync (human gate, emergency hotfixes can persist until Git is updated).
+
+**The three-way diff explained:**
+ArgoCD doesn't just compare live vs desired. It uses three states:
+- **Last applied** (stored in annotation on the resource)
+- **Live current** (what's actually in the cluster)
+- **Desired** (rendered from Git)
+
+This lets ArgoCD distinguish between "a field was changed manually" vs "a controller legitimately updated this field" — which drives the `ignoreDifferences` feature.
+
+---
+
+### B5 — `[8 min]`
+> "A pod has been in `Pending` state for 10 minutes after deployment. Walk me through every possible cause and how you isolate each one."
+
+**Why this question:** `Pending` has ~6 different root causes. Candidates who only know "not enough resources" miss real-world scenarios.
+
+**Model answer — always start here:**
+```bash
+kubectl describe pod auth-service-<hash> -n prod
+# The Events section at the bottom gives the exact scheduler message
+```
+
+**Cause 1 — Insufficient CPU or memory (most common)**
+```
+Events: Warning FailedScheduling
+  0/3 nodes are available: 3 Insufficient cpu.
+```
+```bash
+kubectl top nodes                                     # actual usage
+kubectl describe nodes | grep -A5 "Allocated resources"
+# Fix: scale up node group, or reduce resource requests
+```
+
+**Cause 2 — ResourceQuota exceeded**
+```bash
+kubectl describe resourcequota -n prod
+# If a quota cap is hit, scheduler rejects the pod
+```
+We have RBAC and namespace isolation in Zen Pharma — if a ResourceQuota is set per namespace, a new pod may be rejected even if nodes have free capacity.
+
+**Cause 3 — Node selector / affinity mismatch**
+```bash
+kubectl describe pod <pod> | grep -A3 "Node-Selectors"
+kubectl get nodes --show-labels
+# "0/3 nodes didn't match node selector" — labels don't exist on any node
+```
+
+**Cause 4 — Taint/toleration mismatch**
+```bash
+kubectl describe nodes | grep Taints
+# If nodes have taints and the pod has no matching toleration → unschedulable
+# Common with Spot nodes: taint spot=true:NoSchedule, pods need toleration
+```
+
+**Cause 5 — PVC not bound**
+```
+Events: pod has unbound immediate PersistentVolumeClaims
+```
+```bash
+kubectl get pvc -n prod       # STATUS must be Bound
+kubectl describe pvc <name>   # if Pending: storage class provisioner issue
+```
+
+**Cause 6 — Image pull issue disguised as Pending**
+Sometimes the pod is assigned to a node but then `ImagePullBackOff` keeps it from starting. Check:
+```bash
+kubectl get pods -n prod -o wide    # is NODE column populated?
+# If node is assigned but pod is still "Pending" → look at container state
+kubectl describe pod <pod> | grep -A5 "State:"
+```
+
+**For Zen Pharma specifically:** Our services use `resources.requests.cpu: 100m, memory: 256Mi`. If we scale to 9 services × 3 replicas in prod = 27 pods needing 2.7 CPU cores and 6.75Gi memory just for requests. A 3-node cluster of `t3.medium` (2 vCPU, 4Gi each) can't fit this. Node group needs to be sized appropriately.

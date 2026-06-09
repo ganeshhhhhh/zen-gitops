@@ -1,0 +1,253 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"argoproj.io/v1alpha1","kind":"Application","metadata":{"annotations":{},"finalizers":["resources-finalizer.argocd.argoproj.io"],"labels":{"app":"api-gateway","env":"dev","managed-by":"terraform"},"name":"api-gateway-dev","namespace":"argocd"},"spec":{"destination":{"namespace":"dev","server":"https://kubernetes.default.svc"},"project":"pharma","revisionHistoryLimit":10,"source":{"helm":{"valueFiles":["../envs/dev/values-api-gateway.yaml"]},"path":"helm-charts","repoURL":"https://github.com/DPP-2026/zen-gitops.git","targetRevision":"HEAD"},"syncPolicy":{"automated":{"allowEmpty":false,"prune":true,"selfHeal":true},"retry":{"backoff":{"duration":"5s","factor":2,"maxDuration":"3m"},"limit":5},"syncOptions":["CreateNamespace=true","PrunePropagationPolicy=foreground","PruneLast=true"]}}}
+    refresh: "true"
+  creationTimestamp: "2026-06-09T05:26:11Z"
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+  generation: 171
+  labels:
+    app: api-gateway
+    env: dev
+    managed-by: terraform
+  name: api-gateway-dev
+  namespace: argocd
+  resourceVersion: "76198"
+  uid: 50d6f3f4-9ed3-4e5e-8b18-6e1579b0f963
+spec:
+  destination:
+    namespace: dev
+    server: https://kubernetes.default.svc
+  project: pharma
+  revisionHistoryLimit: 10
+  source:
+    helm:
+      valueFiles:
+      - ../envs/dev/values-api-gateway.yaml
+    path: helm-charts
+    repoURL: https://github.com/DPP-2026/zen-gitops.git
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      allowEmpty: false
+      prune: true
+      selfHeal: true
+    retry:
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+      limit: 5
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+status:
+  controllerNamespace: argocd
+  health:
+    lastTransitionTime: "2026-06-09T11:27:13Z"
+    status: Degraded
+  history:
+  - deployStartedAt: "2026-06-09T05:26:11Z"
+    deployedAt: "2026-06-09T05:26:12Z"
+    id: 0
+    initiatedBy:
+      automated: true
+    revision: cab18d8b9d6a79edb3ebd89ef4037a1195ebec9e
+    source:
+      helm:
+        valueFiles:
+        - ../envs/dev/values-api-gateway.yaml
+      path: helm-charts
+      repoURL: https://github.com/DPP-2026/zen-gitops.git
+      targetRevision: HEAD
+  - deployStartedAt: "2026-06-09T09:09:25Z"
+    deployedAt: "2026-06-09T09:09:25Z"
+    id: 1
+    initiatedBy:
+      automated: true
+    revision: 3991bdb3384856751d77c4791202ee52108215f0
+    source:
+      helm:
+        valueFiles:
+        - ../envs/dev/values-api-gateway.yaml
+      path: helm-charts
+      repoURL: https://github.com/DPP-2026/zen-gitops.git
+      targetRevision: HEAD
+  - deployStartedAt: "2026-06-09T09:19:26Z"
+    deployedAt: "2026-06-09T09:19:27Z"
+    id: 2
+    initiatedBy:
+      automated: true
+    revision: f52a9df8176894e813ed50fb86a07ca55ce35d81
+    source:
+      helm:
+        valueFiles:
+        - ../envs/dev/values-api-gateway.yaml
+      path: helm-charts
+      repoURL: https://github.com/DPP-2026/zen-gitops.git
+      targetRevision: HEAD
+  - deployStartedAt: "2026-06-09T09:23:44Z"
+    deployedAt: "2026-06-09T09:23:45Z"
+    id: 3
+    initiatedBy:
+      automated: true
+    revision: 219efba939373d2acdc90a39f2af4ec7b8996ddb
+    source:
+      helm:
+        valueFiles:
+        - ../envs/dev/values-api-gateway.yaml
+      path: helm-charts
+      repoURL: https://github.com/DPP-2026/zen-gitops.git
+      targetRevision: HEAD
+  - deployStartedAt: "2026-06-09T11:19:18Z"
+    deployedAt: "2026-06-09T11:19:18Z"
+    id: 4
+    initiatedBy: {}
+    revision: 9cd3fdc54216215a399bbd374b377c3b2e0f0121
+    source:
+      helm:
+        valueFiles:
+        - ../envs/dev/values-api-gateway.yaml
+      path: helm-charts
+      repoURL: https://github.com/DPP-2026/zen-gitops.git
+      targetRevision: HEAD
+  operationState:
+    finishedAt: "2026-06-09T11:19:18Z"
+    message: successfully synced (all tasks run)
+    operation:
+      initiatedBy:
+        automated: true
+      retry:
+        backoff:
+          duration: 5s
+          factor: 2
+          maxDuration: 3m
+        limit: 5
+      sync:
+        prune: true
+        revision: 219efba939373d2acdc90a39f2af4ec7b8996ddb
+        source:
+          helm:
+            valueFiles:
+            - ../envs/dev/values-api-gateway.yaml
+          path: helm-charts
+          repoURL: https://github.com/DPP-2026/zen-gitops.git
+          targetRevision: HEAD
+        syncOptions:
+        - CreateNamespace=true
+        - PrunePropagationPolicy=foreground
+        - PruneLast=true
+    phase: Succeeded
+    startedAt: "2026-06-09T11:19:18Z"
+    syncResult:
+      resources:
+      - group: ""
+        hookPhase: Running
+        kind: ServiceAccount
+        message: serviceaccount/api-gateway unchanged
+        name: api-gateway
+        namespace: dev
+        status: Synced
+        syncPhase: Sync
+        version: v1
+      - group: ""
+        hookPhase: Running
+        kind: ConfigMap
+        message: configmap/api-gateway unchanged
+        name: api-gateway
+        namespace: dev
+        status: Synced
+        syncPhase: Sync
+        version: v1
+      - group: ""
+        hookPhase: Running
+        kind: Service
+        message: service/api-gateway unchanged
+        name: api-gateway
+        namespace: dev
+        status: Synced
+        syncPhase: Sync
+        version: v1
+      - group: apps
+        hookPhase: Running
+        images:
+        - 516209541629.dkr.ecr.us-east-1.amazonaws.com/api-gateway:sha-079d470
+        kind: Deployment
+        message: deployment.apps/api-gateway unchanged
+        name: api-gateway
+        namespace: dev
+        status: Synced
+        syncPhase: Sync
+        version: v1
+      - group: networking.k8s.io
+        hookPhase: Running
+        kind: Ingress
+        message: ingress.networking.k8s.io/api-gateway unchanged
+        name: api-gateway
+        namespace: dev
+        status: Synced
+        syncPhase: Sync
+        version: v1
+      revision: 9cd3fdc54216215a399bbd374b377c3b2e0f0121
+      source:
+        helm:
+          valueFiles:
+          - ../envs/dev/values-api-gateway.yaml
+        path: helm-charts
+        repoURL: https://github.com/DPP-2026/zen-gitops.git
+        targetRevision: HEAD
+  reconciledAt: "2026-06-09T11:27:13Z"
+  resourceHealthSource: appTree
+  resources:
+  - kind: ConfigMap
+    name: api-gateway
+    namespace: dev
+    status: Synced
+    version: v1
+  - kind: Service
+    name: api-gateway
+    namespace: dev
+    status: Synced
+    version: v1
+  - kind: ServiceAccount
+    name: api-gateway
+    namespace: dev
+    status: Synced
+    version: v1
+  - group: apps
+    kind: Deployment
+    name: api-gateway
+    namespace: dev
+    status: Synced
+    version: v1
+  - group: networking.k8s.io
+    kind: Ingress
+    name: api-gateway
+    namespace: dev
+    status: Synced
+    version: v1
+  sourceHydrator: {}
+  sourceType: Helm
+  summary:
+    externalURLs:
+    - http://a847ce48563894bf28973dd218ba7b3b-742224f08dfc6067.elb.us-east-1.amazonaws.com/api
+    images:
+    - 516209541629.dkr.ecr.us-east-1.amazonaws.com/api-gateway:sha-079d470
+  sync:
+    comparedTo:
+      destination:
+        namespace: dev
+        server: https://kubernetes.default.svc
+      source:
+        helm:
+          valueFiles:
+          - ../envs/dev/values-api-gateway.yaml
+        path: helm-charts
+        repoURL: https://github.com/DPP-2026/zen-gitops.git
+        targetRevision: HEAD
+    revision: 9cd3fdc54216215a399bbd374b377c3b2e0f0121
+    status: Synced

@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    argocd.argoproj.io/tracking-id: pharma-ui-dev:apps/Deployment:dev/pharma-ui
+    deployment.kubernetes.io/revision: "2"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"argocd.argoproj.io/tracking-id":"pharma-ui-dev:apps/Deployment:dev/pharma-ui"},"labels":{"app.kubernetes.io/instance":"pharma-ui-dev","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"pharma-ui","app.kubernetes.io/version":"1.0.0","helm.sh/chart":"pharma-service-1.0.0"},"name":"pharma-ui","namespace":"dev"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/instance":"pharma-ui-dev","app.kubernetes.io/name":"pharma-ui"}},"template":{"metadata":{"annotations":{"checksum/config":"257f9b02723309ed6372a581d466909731aef94e151291a5d64ffa6b979d67db"},"labels":{"app.kubernetes.io/instance":"pharma-ui-dev","app.kubernetes.io/name":"pharma-ui"}},"spec":{"containers":[{"envFrom":[{"configMapRef":{"name":"pharma-ui"}}],"image":"516209541629.dkr.ecr.us-east-1.amazonaws.com/pharma-ui:02272ed88cd64af33be055c56673ec9205dc7348","imagePullPolicy":"Always","livenessProbe":{"failureThreshold":3,"httpGet":{"path":"/","port":80},"initialDelaySeconds":10,"periodSeconds":15,"successThreshold":1,"timeoutSeconds":5},"name":"pharma-service","ports":[{"containerPort":80,"name":"http","protocol":"TCP"}],"readinessProbe":{"failureThreshold":3,"httpGet":{"path":"/","port":80},"initialDelaySeconds":5,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":5},"resources":{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":1000},"volumeMounts":[{"mountPath":"/tmp","name":"tmp"},{"mountPath":"/var/cache/nginx","name":"nginx-cache"},{"mountPath":"/var/run","name":"nginx-run"}]}],"securityContext":{"fsGroup":2000,"runAsNonRoot":true,"runAsUser":1000},"serviceAccountName":"pharma-ui","terminationGracePeriodSeconds":30,"volumes":[{"emptyDir":{},"name":"tmp"},{"emptyDir":{},"name":"nginx-cache"},{"emptyDir":{},"name":"nginx-run"}]}}}}
+  creationTimestamp: "2026-06-09T05:26:18Z"
+  generation: 2
+  labels:
+    app.kubernetes.io/instance: pharma-ui-dev
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: pharma-ui
+    app.kubernetes.io/version: 1.0.0
+    helm.sh/chart: pharma-service-1.0.0
+  name: pharma-ui
+  namespace: dev
+  resourceVersion: "38154"
+  uid: 3a3946dd-5bad-4905-bd06-8548059aa87b
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: pharma-ui-dev
+      app.kubernetes.io/name: pharma-ui
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/config: 257f9b02723309ed6372a581d466909731aef94e151291a5d64ffa6b979d67db
+        kubectl.kubernetes.io/restartedAt: "2026-06-09T13:39:41+05:30"
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/instance: pharma-ui-dev
+        app.kubernetes.io/name: pharma-ui
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: pharma-ui
+        image: 516209541629.dkr.ecr.us-east-1.amazonaws.com/pharma-ui:02272ed88cd64af33be055c56673ec9205dc7348
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: pharma-service
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /var/cache/nginx
+          name: nginx-cache
+        - mountPath: /var/run
+          name: nginx-run
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 1000
+      serviceAccount: pharma-ui
+      serviceAccountName: pharma-ui
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: tmp
+      - emptyDir: {}
+        name: nginx-cache
+      - emptyDir: {}
+        name: nginx-run
+status:
+  conditions:
+  - lastTransitionTime: "2026-06-09T05:26:18Z"
+    lastUpdateTime: "2026-06-09T05:26:18Z"
+    message: Deployment does not have minimum availability.
+    reason: MinimumReplicasUnavailable
+    status: "False"
+    type: Available
+  - lastTransitionTime: "2026-06-09T08:19:42Z"
+    lastUpdateTime: "2026-06-09T08:19:42Z"
+    message: ReplicaSet "pharma-ui-5dd65dcc75" has timed out progressing.
+    reason: ProgressDeadlineExceeded
+    status: "False"
+    type: Progressing
+  observedGeneration: 2
+  replicas: 2
+  unavailableReplicas: 2
+  updatedReplicas: 1
